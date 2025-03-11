@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "image.h": "c",
+        "cr2_thumbnail.h": "c"
+    }
+}
