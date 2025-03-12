@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/watsonserve/images/cr2"
-	"github.com/watsonserve/images/heif"
 	"github.com/watsonserve/images/livp"
 	"gocv.io/x/gocv"
 )
@@ -58,9 +57,9 @@ func IMRead(src string) (gocv.Mat, error) {
 	case ".cr2":
 		imgMat, err = cr2.IMReadThumb(src)
 	case ".livp":
-		imgMat, err = livp.IMReadPrimary(src)
+		imgMat, err = livp.IMReadLivpPrimary(src)
 	case ".heic":
-		imgMat, err = heif.IMReadPrimary(src)
+		imgMat, err = livp.IMReadHeicPrimaryByFile(src)
 	default:
 		imgMat = gocv.IMRead(src, gocv.IMReadUnchanged)
 		if imgMat.Empty() {

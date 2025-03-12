@@ -7,8 +7,6 @@ import (
 	"path"
 	"strings"
 
-	"github.com/watsonserve/images/heif"
-
 	"gocv.io/x/gocv"
 )
 
@@ -27,7 +25,7 @@ func exportZFile(zf *zip.File) ([]byte, error) {
 	return dstFp.Bytes(), err
 }
 
-func ReadPrimary(src string) (img []byte, isHeic bool, err error) {
+func ReadLivpPrimary(src string) (img []byte, isHeic bool, err error) {
 	img = nil
 	isHeic = false
 	reader, err := zip.OpenReader(src)
@@ -55,13 +53,13 @@ func ReadPrimary(src string) (img []byte, isHeic bool, err error) {
 	return img, isHeic, err
 }
 
-func IMReadPrimary(src string) (gocv.Mat, error) {
+func IMReadLivpPrimary(src string) (gocv.Mat, error) {
 	buf, isHeic, err := ReadPrimary(src)
-	if isHeic && nil == err {
-		buf, err = heif.ReadPrimary(buf)
-	}
 	if nil != err {
 		return gocv.Mat{}, err
+	}
+	if isHeic {
+		return IMReadPrimaryByMem(buf)
 	}
 	return gocv.IMDecode(buf, gocv.IMReadUnchanged)
 }
