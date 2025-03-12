@@ -53,13 +53,14 @@ func ReadLivpPrimary(src string) (img []byte, isHeic bool, err error) {
 	return img, isHeic, err
 }
 
-func IMReadLivpPrimary(src string) (gocv.Mat, error) {
-	buf, isHeic, err := ReadPrimary(src)
+func IMReadLivpPrimary(src string) (*gocv.Mat, error) {
+	buf, isHeic, err := ReadLivpPrimary(src)
 	if nil != err {
-		return gocv.Mat{}, err
+		return nil, err
 	}
 	if isHeic {
-		return IMReadPrimaryByMem(buf)
+		return IMReadHeicPrimaryByMem(buf)
 	}
-	return gocv.IMDecode(buf, gocv.IMReadUnchanged)
+	imgMat, err := gocv.IMDecode(buf, gocv.IMReadUnchanged)
+	return &imgMat, err
 }

@@ -31,10 +31,11 @@ func cr2Thumb(src string) ([]byte, error) {
 	return buf, nil
 }
 
-func IMReadThumb(src string) (gocv.Mat, error) {
+func IMReadThumb(src string) (*gocv.Mat, error) {
 	buf, err := cr2Thumb(src)
 	if nil != err {
-		return gocv.Mat{}, err
+		return nil, err
 	}
-	return gocv.IMDecode(buf, gocv.IMReadUnchanged)
+	imgMat, err := gocv.IMDecode(buf, gocv.IMReadUnchanged)
+	return &imgMat, err
 }

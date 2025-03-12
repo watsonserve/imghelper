@@ -1,4 +1,4 @@
-module github.com/watsonserve/images
+module github.com/watsonserve/imghelper
 
 go 1.21
 
