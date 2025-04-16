@@ -28,6 +28,26 @@ func reSizeByLongSide(imgMat *gocv.Mat, maxLongSide int) {
 	gocv.Resize(*imgMat, imgMat, sz, scale, scale, gocv.InterpolationArea)
 }
 
+func IMLoad(fileName string, content []byte) (*gocv.Mat, error) {
+	switch strings.ToLower(path.Ext(fileName)) {
+	case ".cr2":
+		return cr2.IMReadThumb(fileName)
+	case ".livp":
+		return livp.IMReadLivpPrimary(fileName)
+	case ".heic":
+		return livp.IMReadHeicPrimaryByFile(fileName)
+	default:
+	}
+	imgMat, err := gocv.IMDecode(content, gocv.IMReadUnchanged)
+	if nil != err {
+		return nil, err
+	}
+	if imgMat.Empty() {
+		return nil, errors.New("load Image failed")
+	}
+	return &imgMat, nil
+}
+
 func IMRead(src string) (*gocv.Mat, error) {
 	switch strings.ToLower(path.Ext(src)) {
 	case ".cr2":
