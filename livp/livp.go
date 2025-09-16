@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"gocv.io/x/gocv"
+	"github.com/watsonserve/imghelper/cv"
 )
 
 func exportZFile(zf *zip.File) ([]byte, error) {
@@ -53,7 +53,7 @@ func ReadLivpPrimary(src string) (img []byte, isHeic bool, err error) {
 	return img, isHeic, err
 }
 
-func IMReadLivpPrimary(src string) (*gocv.Mat, error) {
+func IMReadLivpPrimary(src string) (*cv.Mat, error) {
 	buf, isHeic, err := ReadLivpPrimary(src)
 	if nil != err {
 		return nil, err
@@ -61,6 +61,6 @@ func IMReadLivpPrimary(src string) (*gocv.Mat, error) {
 	if isHeic {
 		return IMReadHeicPrimaryByMem(buf)
 	}
-	imgMat, err := gocv.IMDecode(buf, gocv.IMReadUnchanged)
+	imgMat, err := cv.IMDecode(buf, cv.IMReadUnchanged)
 	return &imgMat, err
 }

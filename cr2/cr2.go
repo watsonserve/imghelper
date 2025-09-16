@@ -9,7 +9,7 @@ import (
 	"os"
 	"unsafe"
 
-	"gocv.io/x/gocv"
+	"github.com/watsonserve/imghelper/cv"
 )
 
 func cr2Thumb(src string) ([]byte, error) {
@@ -31,11 +31,11 @@ func cr2Thumb(src string) ([]byte, error) {
 	return buf, nil
 }
 
-func IMReadThumb(src string) (*gocv.Mat, error) {
+func IMReadThumb(src string) (*cv.Mat, error) {
 	buf, err := cr2Thumb(src)
 	if nil != err {
 		return nil, err
 	}
-	imgMat, err := gocv.IMDecode(buf, gocv.IMReadUnchanged)
+	imgMat, err := cv.IMDecode(buf, cv.IMReadUnchanged)
 	return &imgMat, err
 }

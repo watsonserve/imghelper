@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/watsonserve/imghelper/cr2"
+	"github.com/watsonserve/imghelper/cv"
 	"github.com/watsonserve/imghelper/livp"
-	"gocv.io/x/gocv"
 )
 
-func reSizeByLongSide(imgMat *gocv.Mat, maxLongSide int) {
+func reSizeByLongSide(imgMat *cv.Mat, maxLongSide int) {
 	siz := imgMat.Size()
 	height := siz[0]
 	width := siz[1]
@@ -25,10 +25,10 @@ func reSizeByLongSide(imgMat *gocv.Mat, maxLongSide int) {
 	}
 	scale := 1 / math.Ceil(float64(longSide)/float64(maxLongSide))
 	sz := image.Point{}
-	gocv.Resize(*imgMat, imgMat, sz, scale, scale, gocv.InterpolationArea)
+	*imgMat = imgMat.Resize(sz, scale, scale, cv.InterpolationArea)
 }
 
-func IMLoad(fileName string, content []byte) (*gocv.Mat, error) {
+func IMLoad(fileName string, content []byte) (*cv.Mat, error) {
 	switch strings.ToLower(path.Ext(fileName)) {
 	case ".cr2":
 		return cr2.IMReadThumb(fileName)
@@ -38,7 +38,7 @@ func IMLoad(fileName string, content []byte) (*gocv.Mat, error) {
 		return livp.IMReadHeicPrimaryByFile(fileName)
 	default:
 	}
-	imgMat, err := gocv.IMDecode(content, gocv.IMReadUnchanged)
+	imgMat, err := cv.IMDecode(content, cv.IMReadUnchanged)
 	if nil != err {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func IMLoad(fileName string, content []byte) (*gocv.Mat, error) {
 	return &imgMat, nil
 }
 
-func IMRead(src string) (*gocv.Mat, error) {
+func IMRead(src string) (*cv.Mat, error) {
 	switch strings.ToLower(path.Ext(src)) {
 	case ".cr2":
 		return cr2.IMReadThumb(src)
@@ -58,22 +58,22 @@ func IMRead(src string) (*gocv.Mat, error) {
 		return livp.IMReadHeicPrimaryByFile(src)
 	default:
 	}
-	imgMat := gocv.IMRead(src, gocv.IMReadUnchanged)
+	imgMat := cv.IMRead(src, cv.IMReadUnchanged)
 	if imgMat.Empty() {
 		return nil, errors.New("load Image failed")
 	}
 	return &imgMat, nil
 }
 
-func IMWrite(imgMat *gocv.Mat, dst string, quality, maxLongSide int) error {
+func IMWrite(imgMat *cv.Mat, dst string, quality, maxLongSide int) error {
 	if 0 < maxLongSide {
 		reSizeByLongSide(imgMat, maxLongSide)
 	}
 	params := make([]int, 0)
 	if 0 < quality && quality < 100 {
-		params = []int{int(gocv.IMWriteWebpQuality), int(quality)}
+		params = []int{int(cv.IMWriteWebpQuality), int(quality)}
 	}
-	if !gocv.IMWriteWithParams(dst, *imgMat, params) {
+	if !imgMat.IMWrite(dst, params) {
 		return errors.New("save image failed")
 	}
 	return nil

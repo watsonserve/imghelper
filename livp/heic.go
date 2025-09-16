@@ -2,10 +2,10 @@ package livp
 
 import (
 	libheif "github.com/strukturag/libheif-go"
-	"gocv.io/x/gocv"
+	"github.com/watsonserve/imghelper/cv"
 )
 
-func readPrimary(ctx *libheif.Context) (*gocv.Mat, error) {
+func readPrimary(ctx *libheif.Context) (*cv.Mat, error) {
 	handler, err := ctx.GetPrimaryImageHandle()
 	if nil != err {
 		return nil, err
@@ -18,11 +18,11 @@ func readPrimary(ctx *libheif.Context) (*gocv.Mat, error) {
 	if nil != err {
 		return nil, err
 	}
-	imgMat, err := gocv.ImageToMatRGBA(img)
+	imgMat, err := cv.ImageToMatRGBA(img)
 	return &imgMat, err
 }
 
-func IMReadHeicPrimaryByMem(data []byte) (*gocv.Mat, error) {
+func IMReadHeicPrimaryByMem(data []byte) (*cv.Mat, error) {
 	ctx, err := libheif.NewContext()
 	if nil == err {
 		err = ctx.ReadFromMemory(data)
@@ -33,7 +33,7 @@ func IMReadHeicPrimaryByMem(data []byte) (*gocv.Mat, error) {
 	return readPrimary(ctx)
 }
 
-func IMReadHeicPrimaryByFile(src string) (*gocv.Mat, error) {
+func IMReadHeicPrimaryByFile(src string) (*cv.Mat, error) {
 	ctx, err := libheif.NewContext()
 	if nil == err {
 		err = ctx.ReadFromFile(src)
