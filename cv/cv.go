@@ -12,9 +12,7 @@ import (
 )
 
 type Mat struct {
-	p C.Mat
-	// Non-nil if Mat was created with a []byte (using NewMatFromBytes()). Nil otherwise.
-	d []byte
+	p C.matptr_t
 }
 
 type InterpolationFlags int
@@ -119,17 +117,6 @@ const (
 	IMWriteWebpQuality = 64
 )
 
-func newMat(p C.Mat) Mat {
-	return Mat{p: p}
-}
-
-func IMRead(filename string, flags IMReadFlag) Mat {
-	cStr := C.CString(filename)
-	defer C.free(unsafe.Pointer(cStr))
-
-	return newMat(C.cvIMRead(cStr, C.int(flags)))
-}
-
 func toByteArray(buf []byte) (*C.uchar, int) {
 	length := 0
 	var data []C.uchar = nil
@@ -148,100 +135,34 @@ func toByteArray(buf []byte) (*C.uchar, int) {
 	return (*C.uchar)(&data[0]), length
 }
 
-func NewMatFromBytes(rows int, cols int, mt int, data []byte) (Mat, error) {
+func toIntArray(buf []int) (*C.int, int) {
+	length := 0
+	var data []C.int = nil
+
+	if nil != buf {
+		length = len(buf)
+	}
+
+	if 0 == length {
+		return (*C.int)(unsafe.Pointer(nil)), 0
+	}
+	data = make([]C.int, length)
+	for i, v := range buf {
+		data[i] = C.int(v)
+	}
+	return (*C.int)(&data[0]), length
+}
+
+func wrap(p C.matptr_t) Mat {
+	return Mat{p: p}
+}
+
+func newMatFromBytes(rows int, cols int, mt int, data []byte) (Mat, error) {
 	cBytes, length := toByteArray(data)
 	if 0 == length {
-		return Mat{}, errors.New("no data")
+		return wrap(nil), errors.New("no data")
 	}
-	mat := newMat(C.cvNewFromBytes(C.int(rows), C.int(cols), C.int(mt), cBytes))
-
-	// Store a reference to the backing data slice. This is needed because we pass the backing
-	// array directly to C code and without keeping a Go reference to it, it might end up
-	// garbage collected which would result in crashes.
-	//
-	// TODO(bga): This could live in newMat() but I wanted to reduce the change surface.
-	// TODO(bga): Code that needs access to the array from Go could use this directly.
-	mat.d = data
-
-	return mat, nil
-}
-
-func IMDecode(buf []byte, flags IMReadFlag) (Mat, error) {
-	data, length := toByteArray(buf)
-
-	if 0 == length {
-		return Mat{}, errors.New("no data")
-	}
-	return newMat(C.cvIMDecode(data, C.int(length), C.int(flags))), nil
-}
-
-func (mat *Mat) Close() {
-	if nil == mat.p {
-		return
-	}
-
-	C.cvClose(C.Mat(mat.p))
-	mat.p = nil
-	mat.d = nil
-}
-
-func (mat *Mat) IMWrite(filename string, params []int) bool {
-	if nil == mat.p {
-		return false
-	}
-
-	cStr := C.CString(filename)
-	defer C.free(unsafe.Pointer(cStr))
-
-	length := 0
-	var cparams []C.int = nil
-
-	if nil != params {
-		length = len(params)
-	}
-
-	if 0 != length {
-		cparams = make([]C.int, length)
-		for i, v := range params {
-			cparams[i] = C.int(v)
-		}
-	}
-
-	return C.int(1) == C.cvImageIMWriteWithParams(cStr, C.Mat(mat.p), (*C.int)(&cparams[0]), C.int(length))
-}
-
-func (mat *Mat) Resize(sz image.Point, fx, fy float64, interp InterpolationFlags) Mat {
-	dst := Mat{}
-
-	if nil == mat.p {
-		return dst
-	}
-
-	dstP := C.cvNew()
-	C.cvResize(C.Mat(mat.p), dstP, C.int(sz.X), C.int(sz.Y), C.double(fx), C.double(fy), C.int(interp))
-	dst.p = dstP
-	return dst
-}
-
-func (mat *Mat) Empty() bool {
-	if nil == mat.p {
-		return true
-	}
-	return C.int(0) != C.cvEmpty(C.Mat(mat.p))
-}
-
-func (mat *Mat) Size() []int {
-	cdims := (*C.int)(unsafe.Pointer(nil))
-	length := int(C.cvSize(mat.p, &cdims))
-	defer C.free(unsafe.Pointer(cdims))
-
-	pdims := unsafe.Slice((*C.int)(unsafe.Pointer(cdims)), length)
-
-	dims := make([]int, length)
-	for i, v := range pdims {
-		dims[i] = int(v)
-	}
-	return dims
+	return wrap(C.cvNewFromBytes(C.int(rows), C.int(cols), C.int(mt), cBytes)), nil
 }
 
 func ImageToMatRGBA(img image.Image) (Mat, error) {
@@ -254,14 +175,14 @@ func ImageToMatRGBA(img image.Image) (Mat, error) {
 	case color.RGBAModel:
 		m, res := img.(*image.RGBA)
 		if !res {
-			return Mat{}, errors.New("Image color format error")
+			return wrap(nil), errors.New("Image color format error")
 		}
 		data = m.Pix
 
 	case color.NRGBAModel:
 		m, res := img.(*image.NRGBA)
 		if !res {
-			return Mat{}, errors.New("Image color format error")
+			return wrap(nil), errors.New("Image color format error")
 		}
 		data = m.Pix
 
@@ -273,18 +194,83 @@ func ImageToMatRGBA(img image.Image) (Mat, error) {
 				data = append(data, byte(b>>8), byte(g>>8), byte(r>>8))
 			}
 		}
-		return NewMatFromBytes(y, x, MatTypeCV8UC3, data)
+		return newMatFromBytes(y, x, MatTypeCV8UC3, data)
 	}
 
 	// speed up the conversion process of RGBA format
-	cvt, err := NewMatFromBytes(y, x, MatTypeCV8UC4, data)
+	cvt, err := newMatFromBytes(y, x, MatTypeCV8UC4, data)
 	if err != nil {
-		return Mat{}, err
+		return cvt, err
 	}
 
 	defer cvt.Close()
 
-	dstP := C.cvNew()
-	C.cvtColor(cvt.p, dstP, C.int(ColorBGRAToRGBA))
-	return Mat{p: dstP}, nil
+	dst := C.cvNew()
+	C.cvtColor(cvt.p, dst, C.int(ColorBGRAToRGBA))
+	return wrap(dst), nil
+}
+
+func IMRead(filename string, flags IMReadFlag) Mat {
+	cStr := C.CString(filename)
+	defer C.free(unsafe.Pointer(cStr))
+
+	return wrap(C.cvIMRead(cStr, C.int(flags)))
+}
+
+func IMDecode(buf []byte, flags IMReadFlag) (Mat, error) {
+	data, length := toByteArray(buf)
+	if 0 == length {
+		return wrap(nil), errors.New("no data")
+	}
+	return wrap(C.cvIMDecode(data, C.int(length), C.int(flags))), nil
+}
+
+func (mat *Mat) Empty() bool {
+	if nil == mat.p {
+		return true
+	}
+	return C.int(0) != C.cvEmpty(mat.p)
+}
+
+func (mat *Mat) Close() {
+	C.cvClose(mat.p)
+	mat.p = nil
+}
+
+func (mat *Mat) IMWrite(filename string, params []int) bool {
+	if mat.Empty() {
+		return false
+	}
+
+	cStr := C.CString(filename)
+	defer C.free(unsafe.Pointer(cStr))
+
+	cparams, length := toIntArray(params)
+
+	return C.int(1) == C.cvImageIMWriteWithParams(cStr, mat.p, cparams, C.int(length))
+}
+
+func (mat *Mat) Resize(sz image.Point, fx, fy float64, interp InterpolationFlags) Mat {
+	dst := wrap(C.cvNew())
+	if !mat.Empty() {
+		C.cvResize(mat.p, dst.p, C.int(sz.X), C.int(sz.Y), C.double(fx), C.double(fy), C.int(interp))
+	}
+	return dst
+}
+
+func (mat *Mat) Size() []int {
+	if mat.Empty() {
+		return []int{0, 0}
+	}
+	cdims := (*C.int)(unsafe.Pointer(nil))
+	length := int(C.cvSize(mat.p, &cdims))
+	defer C.free(unsafe.Pointer(cdims))
+
+	pdims := unsafe.Slice(cdims, length)
+
+	dims := make([]int, length)
+	for i, v := range pdims {
+		dims[i] = int(v)
+	}
+	return dims
 }

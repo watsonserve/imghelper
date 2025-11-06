@@ -37,5 +37,7 @@ func ExampleIMWrite() {
 	if nil == err {
 		err = imghelper.IMWrite(mat, dst, quality, 684)
 	}
-	panic(err)
+	if nil != err {
+		panic(err)
+	}
 }

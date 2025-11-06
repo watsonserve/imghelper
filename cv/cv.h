@@ -5,11 +5,11 @@
 #ifdef __cplusplus
 #include <opencv2/opencv.hpp>
 
-typedef cv::Mat* Mat;
+typedef cv::Mat* matptr_t;
 
 extern "C" {
 #else
-typedef void* Mat;
+typedef void* matptr_t;
 #endif
 
 #include <stdio.h>
@@ -17,27 +17,29 @@ typedef void* Mat;
 #include <unistd.h>
 #include <string.h>
 
-Mat cvNew();
+matptr_t nullPtr();
 
-Mat cvNewFromBytes(int rows, int cols, int type, unsigned char *buf);
+matptr_t cvNew();
 
-Mat cvIMRead(const char* filename, int flags);
+matptr_t cvNewFromBytes(int rows, int cols, int type, unsigned char *buf);
 
-Mat cvIMDecode(unsigned char* buf, int length, int flags);
+matptr_t cvIMRead(const char* filename, int flags);
 
-void cvClose(Mat mat);
+matptr_t cvIMDecode(unsigned char* buf, int length, int flags);
 
-int cvEmpty(Mat mat);
+void cvClose(matptr_t mat);
 
-int cvIMWrite(const char* filename, const Mat image);
+int cvEmpty(matptr_t mat);
 
-int cvImageIMWriteWithParams(const char* filename, Mat img, int* params, int length);
+int cvIMWrite(const char* filename, const matptr_t image);
 
-void cvResize(Mat src, Mat dst, int dw, int dh, double fx, double fy, int interp);
+int cvImageIMWriteWithParams(const char* filename, matptr_t img, int* params, int length);
 
-void cvtColor(Mat src, Mat dst, int code);
+void cvResize(matptr_t src, matptr_t dst, int dw, int dh, double fx, double fy, int interp);
 
-size_t cvSize(Mat m, int **ids);
+void cvtColor(matptr_t src, matptr_t dst, int code);
+
+size_t cvSize(matptr_t m, int **ids);
 
 #ifdef __cplusplus
 }
